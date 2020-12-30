@@ -1,0 +1,30 @@
+{
+    "var1": 18,
+    "var2": 3.1415,
+    "var3": "Simon",
+    "var4": true,
+    "var5": false,
+    "var6": [1, 2, 3, 4],
+    "var7": ["cat", "dog"],
+
+    "var8": [
+        {"Hi.": "Hi."},
+        {"How are you doing?": "Fine."}
+    ],
+
+    "var9": [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ],
+
+    "var10": {
+        "hello": "world",
+        "simon": 18,
+        "dict": {}
+    },
+
+    "var11": null,
+
+    "var12": [true, 2, "three"]
+}
