@@ -28,10 +28,9 @@ fn tokenize(contents: &String) -> Vec<Token> {
     let mut number = String::new();
     let mut keyword = String::new();
 
-    let mut capture_string_token = false;
     let mut capture_keyword_token = false;
 
-    // let mut last_character: char = '\0';
+    let mut last_character: char = '\0';
 
     for character in contents.chars() {
         print!("{} ", character);
@@ -44,7 +43,9 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     state = State::InNothing;  // Not really in nothing, but not in number
                 }
 
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::LeftBrace);
                 }
             }
@@ -55,7 +56,9 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     state = State::InNothing;  // Not really in nothing, but not in number
                 }
 
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::LeftBracket);
                 }
             }
@@ -66,7 +69,9 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     state = State::InNothing;  // Not really in nothing, but not in number
                 }
 
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::RightBrace);
                 }
             }
@@ -77,12 +82,16 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     state = State::InNothing;  // Not really in nothing, but not in number
                 }
 
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::RightBracket);
                 }
             }
             ':' => {
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::Colon);
                 }
             }
@@ -93,19 +102,23 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     state = State::InNothing;  // Not really in nothing, but not in number
                 }
 
-                if !capture_string_token {
+                if let State::InString = state {
+                    string.push(character);
+                } else {
                     tokens.push(Token::Comma);
                 }
             }
-            '"' => { // TODO this can be in string, if there is a \ before
+            '"' => {  // TODO this can be in string, if there is a \ before
                 if let State::InString = state  {
-                    tokens.push(Token::String(string.clone()));
-                    string.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in string
-                    capture_string_token = false;
+                    if last_character != '\\' {
+                        tokens.push(Token::String(string.clone()));
+                        string.clear();
+                        state = State::InNothing;  // Not really in nothing, but not in string
+                    } else {
+                        string.push(character);
+                    }
                 } else {
                     state = State::InString;
-                    capture_string_token = true;
                 }
             }
             '0' | '1' | '2' | '3' |
@@ -118,8 +131,21 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     number.push(character);
                 }
             }
-            _ => {  // spaces, letters and other characters
-                if capture_string_token {
+            '\\' => {
+                if let State::InString = state {
+                    if last_character == '\\' {
+                        string.push(character);
+                    }
+                }
+            }
+            ' ' | '\n' |
+            '\r' | '\t' => {
+                if let State::InString = state {
+                    string.push(character);
+                }  // Else ignore it completely
+            }
+            _ => {  // Letters and other characters
+                if let State::InString = state {
                     string.push(character);
                 } else if capture_keyword_token {
                     keyword.push(character);
@@ -129,7 +155,7 @@ fn tokenize(contents: &String) -> Vec<Token> {
             }
         }
 
-        // last_character = character;
+        last_character = character;
     }
 
     tokens
@@ -165,8 +191,9 @@ mod tests {
     #[test]
     fn main() {
         load(String::from("samples/sample1.json"));
-        println!("####################################");
-        load(String::from("samples/empty.json"));
+        println!("{:?}", Token::String(String::from("Si\"mon")));
+        // println!("####################################");
+        // load(String::from("samples/empty.json"));
     }
 
     #[test]
