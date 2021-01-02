@@ -1,3 +1,3 @@
 # rust_json
 
-A parser and dumper for the json language.
+A parser and dumper for the JSON language.

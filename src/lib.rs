@@ -18,8 +18,6 @@ pub fn dump(json: JSONObject) -> String {
     String::new()
 }
 
-
-
 fn tokenize(contents: &String) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut state = State::InNothing;
@@ -28,9 +26,7 @@ fn tokenize(contents: &String) -> Vec<Token> {
     let mut number = String::new();
     let mut keyword = String::new();
 
-    let mut capture_keyword_token = false;
-
-    let mut last_character: char = '\0';
+    let mut last_character = '\0';
 
     for character in contents.chars() {
         print!("{} ", character);
@@ -41,12 +37,10 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     tokens.push(Token::Number(number.clone()));
                     number.clear();
                     state = State::InNothing;  // Not really in nothing, but not in number
-                }
-
-                if let State::InString = state {
+                } else if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::LeftBrace);
+                    tokens.push(Token::LeftBrace);  // May be an error
                 }
             }
             '[' => {
@@ -54,12 +48,10 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     tokens.push(Token::Number(number.clone()));
                     number.clear();
                     state = State::InNothing;  // Not really in nothing, but not in number
-                }
-
-                if let State::InString = state {
+                } else if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::LeftBracket);
+                    tokens.push(Token::LeftBracket);  // May be an error
                 }
             }
             '}' => {
@@ -67,12 +59,10 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     tokens.push(Token::Number(number.clone()));
                     number.clear();
                     state = State::InNothing;  // Not really in nothing, but not in number
-                }
-
-                if let State::InString = state {
+                } else if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::RightBrace);
+                    tokens.push(Token::RightBrace);  // May be an error
                 }
             }
             ']' => {
@@ -80,19 +70,17 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     tokens.push(Token::Number(number.clone()));
                     number.clear();
                     state = State::InNothing;  // Not really in nothing, but not in number
-                }
-
-                if let State::InString = state {
+                } else if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::RightBracket);
+                    tokens.push(Token::RightBracket);  // May be an error
                 }
             }
             ':' => {
                 if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::Colon);
+                    tokens.push(Token::Colon);  // May be an error
                 }
             }
             ',' => {
@@ -100,15 +88,13 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     tokens.push(Token::Number(number.clone()));
                     number.clear();
                     state = State::InNothing;  // Not really in nothing, but not in number
-                }
-
-                if let State::InString = state {
+                } else if let State::InString = state {
                     string.push(character);
                 } else {
-                    tokens.push(Token::Comma);
+                    tokens.push(Token::Comma);  // May be an error
                 }
             }
-            '"' => {  // TODO this can be in string, if there is a \ before
+            '"' => {
                 if let State::InString = state  {
                     if last_character != '\\' {
                         tokens.push(Token::String(string.clone()));
@@ -117,45 +103,104 @@ fn tokenize(contents: &String) -> Vec<Token> {
                     } else {
                         string.push(character);
                     }
-                } else {
+                } else if last_character == ':' || last_character == '[' || last_character == ',' || last_character == '{' {
                     state = State::InString;
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                }
+            }
+            '.' => {
+                if let State::InString = state  {
+                    string.push(character);
+                } else if let State::InNumber = state {
+                    number.push(character);
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
                 }
             }
             '0' | '1' | '2' | '3' |
             '4' | '5' | '6' | '7' |
             '8' | '9' => {
-                if let State::InNumber = state {
+                if let State::InString = state {
+                    string.push(character);
+                } else if let State::InNumber = state {
                     number.push(character);
-                } else {
+                } else if last_character == ':' || last_character == '[' || last_character == ',' {
+                    number.push(character);
                     state = State::InNumber;
-                    number.push(character);
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
                 }
             }
             '\\' => {
                 if let State::InString = state {
                     if last_character == '\\' {
                         string.push(character);
+                    } else {
+                        tokens.push(Token::Unidentified(character.to_string()));  // Will be error
                     }
                 }
             }
             ' ' | '\n' |
             '\r' | '\t' => {
                 if let State::InString = state {
-                    string.push(character);
-                }  // Else ignore it completely
+                    if character != '\n' {
+                        string.push(character);
+                    } else {
+                        tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                    }
+                }
+                // Else ignore it completely
             }
-            _ => {  // Letters and other characters
+            't' | 'f' | 'n' => {
                 if let State::InString = state {
                     string.push(character);
-                } else if capture_keyword_token {
+                } else if last_character == ':' || last_character == '[' || last_character == ',' {
                     keyword.push(character);
+                    state = State::InKeyword;
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
                 }
-
-
+            }
+            'e' | 'l' => {
+                if let State::InString = state {
+                    string.push(character);
+                } else if let State::InKeyword = state {
+                    if character == 'e' {
+                        keyword.push(character);
+                        tokens.push(Token::Keyword(keyword.clone()));
+                        keyword.clear();
+                        state = State::InNothing;
+                    } else {  // Must be 'l'
+                        if last_character == 'l' {
+                            keyword.push(character);
+                            tokens.push(Token::Keyword(keyword.clone()));
+                            keyword.clear();
+                            state = State::InNothing;
+                        } else {
+                            keyword.push(character);
+                        }
+                    }
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                }
+            }
+            _ => {  // Other letters and characters
+                if let State::InString = state {
+                    string.push(character);
+                } else if let State::InKeyword = state {
+                    keyword.push(character);
+                } else {
+                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                }
             }
         }
 
-        last_character = character;
+        match character {  // Don't keep whitespace
+            ' ' | '\n' |
+            '\r' | '\t' => (),
+            _ => last_character = character
+        }
     }
 
     tokens
@@ -171,17 +216,15 @@ enum Token {
     Comma,
     String(String),
     Number(String),  // Integer or float
-    Keyword(String)  // Boolean or null
+    Keyword(String),  // Boolean or null
+    Unidentified(String)  // When this is used, there will be an error
 }
 
 enum State {
     InNothing,
-    InObject,
-    InArray,
     InString,
     InNumber,
-    InBool,
-    InNull
+    InKeyword
 }
 
 #[cfg(test)]
@@ -190,10 +233,13 @@ mod tests {
 
     #[test]
     fn main() {
-        load(String::from("samples/sample1.json"));
-        println!("{:?}", Token::String(String::from("Si\"mon")));
+        // load(String::from("samples/sample1.json"));
         // println!("####################################");
         // load(String::from("samples/empty.json"));
+        // println!("####################################");
+        // load(String::from("samples/sample2.json"));
+
+        load(String::from("samples/errors.json"));
     }
 
     #[test]
