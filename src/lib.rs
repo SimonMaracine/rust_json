@@ -6,7 +6,7 @@ use data_structure::JSONObject;
 
 pub fn load(file: String) -> Result<JSONObject, Box<dyn Error>> {
     let contents = read_to_string(file)?;
-    let tokens = tokenize(&contents);
+    let tokens = tokenize(contents);
     println!("{:#?}", tokens);
 
 
@@ -18,7 +18,7 @@ pub fn dump(json: JSONObject) -> String {
     String::new()
 }
 
-fn tokenize(contents: &String) -> Vec<Token> {
+fn tokenize(contents: String) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut state = State::InNothing;
 
@@ -238,8 +238,10 @@ mod tests {
         // load(String::from("samples/empty.json"));
         // println!("####################################");
         // load(String::from("samples/sample2.json"));
-
-        load(String::from("samples/errors.json"));
+        // println!("####################################");
+        // load(String::from("samples/errors.json"));
+        // println!("####################################");
+        load(String::from("samples/sample3.json"));
     }
 
     #[test]
