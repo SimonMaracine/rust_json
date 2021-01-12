@@ -6,7 +6,7 @@ pub struct JSONObject {
     float_pairs: HashMap<String, f32>,
     bool_pairs: HashMap<String, bool>,
     string_pairs: HashMap<String, String>,
-    // array_pairs: HashMap<String, >,
+    array_pairs: HashMap<String, Array>,
     object_pairs: HashMap<String, JSONObject>,
     null_pairs: HashMap<String, Null>
 }
@@ -18,7 +18,7 @@ impl JSONObject {
             float_pairs: HashMap::new(),
             bool_pairs: HashMap::new(),
             string_pairs: HashMap::new(),
-            // array_pairs: HashMap::new(),
+            array_pairs: HashMap::new(),
             object_pairs: HashMap::new(),
             null_pairs: HashMap::new()
         }
@@ -38,6 +38,10 @@ impl JSONObject {
 
     pub fn insert_string(&mut self, key: String, value: String) {
         self.string_pairs.insert(key, value);
+    }
+
+    pub fn insert_array(&mut self, key: String, value: Array) {
+        self.array_pairs.insert(key, value);
     }
 
     pub fn insert_object(&mut self, key: String, value: JSONObject) {
@@ -64,6 +68,10 @@ impl JSONObject {
         self.string_pairs.remove(&key)
     }
 
+    pub fn delete_array(&mut self, key: String) -> Option<Array> {
+        self.array_pairs.remove(&key)
+    }
+
     pub fn delete_object(&mut self, key: String) -> Option<JSONObject> {
         self.object_pairs.remove(&key)
     }
@@ -86,6 +94,10 @@ impl JSONObject {
 
     pub fn get_string(&self, key: String) -> Option<&String> {
         self.string_pairs.get(&key)
+    }
+
+    pub fn get_array(&self, key: String) -> Option<&Array> {
+        self.array_pairs.get(&key)
     }
 
     pub fn get_object(&self, key: String) -> Option<&JSONObject> {
@@ -164,6 +176,16 @@ impl Array {
         self.item_count += 1;
     }
 
+    pub fn add_array(&mut self, value: Array) {
+        self.arrays.push(
+            ArrayItem {
+                item: value,
+                index: self.item_count
+            }
+        );
+        self.item_count += 1;
+    }
+
     pub fn add_object(&mut self, value: JSONObject) {
         self.objects.push(
             ArrayItem {
@@ -196,6 +218,7 @@ impl Array {
         }
 
         self.ints.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 
     pub fn remove_float(&mut self, index: usize) {
@@ -210,6 +233,7 @@ impl Array {
         }
 
         self.floats.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 
     pub fn remove_bool(&mut self, index: usize) {
@@ -224,6 +248,7 @@ impl Array {
         }
 
         self.bools.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 
     pub fn remove_string(&mut self, index: usize) {
@@ -238,6 +263,22 @@ impl Array {
         }
 
         self.strings.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
+    }
+
+    pub fn remove_array(&mut self, index: usize) {
+        let mut index_to_remove: isize = -1;
+        for (i, item) in self.arrays.iter().enumerate() {
+            if item.index == index {
+                index_to_remove = i as isize;
+            }
+        }
+        if index_to_remove == -1 {
+            panic!("Index {} doesn't exist");
+        }
+
+        self.arrays.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 
     pub fn remove_object(&mut self, index: usize) {
@@ -252,6 +293,7 @@ impl Array {
         }
 
         self.objects.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 
     pub fn remove_null(&mut self, index: usize) {
@@ -266,6 +308,7 @@ impl Array {
         }
 
         self.nulls.remove(index_to_remove as usize);
+        fix_index_on_array_item_deletion(self, index_to_remove);
     }
 }
 
@@ -275,6 +318,66 @@ struct ArrayItem<T> {
     index: usize
 }
 
-// The null value in json
+fn fix_index_on_array_item_deletion(array: &mut Array, index_to_remove: isize) {
+    let mut index_to_fix = index_to_remove + 1;
+
+    for _ in 0..array.item_count - index_to_fix as usize - 2 {  // Code untested
+        for item in array.ints.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+
+        for item in array.floats.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+
+        for item in array.bools.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+
+        for item in array.strings.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+
+        for item in array.objects.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+
+        for item in array.nulls.iter_mut() {
+            if item.index == index_to_fix as usize {
+                item.index -= 1;
+                index_to_fix += 1;
+                assert!(index_to_fix != array.item_count as isize + 1);
+                continue;
+            }
+        }
+    }
+}
+
+// The null value in JSON
 #[derive(Debug)]
 pub struct Null;
