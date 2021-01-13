@@ -1,4 +1,5 @@
 {
-    "name": "Sim\'on",
-    "age": 18
+    "name": "Simon",
+    "age": 18,
+    "array": [1, 2, 3]
 }

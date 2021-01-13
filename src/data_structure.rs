@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 
 #[derive(Debug)]
 pub struct JSONObject {
@@ -6,7 +7,7 @@ pub struct JSONObject {
     float_pairs: HashMap<String, f32>,
     bool_pairs: HashMap<String, bool>,
     string_pairs: HashMap<String, String>,
-    array_pairs: HashMap<String, Array>,
+    array_pairs: HashMap<String, JSONArray>,
     object_pairs: HashMap<String, JSONObject>,
     null_pairs: HashMap<String, Null>
 }
@@ -40,7 +41,7 @@ impl JSONObject {
         self.string_pairs.insert(key, value);
     }
 
-    pub fn insert_array(&mut self, key: String, value: Array) {
+    pub fn insert_array(&mut self, key: String, value: JSONArray) {
         self.array_pairs.insert(key, value);
     }
 
@@ -68,7 +69,7 @@ impl JSONObject {
         self.string_pairs.remove(&key)
     }
 
-    pub fn delete_array(&mut self, key: String) -> Option<Array> {
+    pub fn delete_array(&mut self, key: String) -> Option<JSONArray> {
         self.array_pairs.remove(&key)
     }
 
@@ -96,7 +97,7 @@ impl JSONObject {
         self.string_pairs.get(&key)
     }
 
-    pub fn get_array(&self, key: String) -> Option<&Array> {
+    pub fn get_array(&self, key: String) -> Option<&JSONArray> {
         self.array_pairs.get(&key)
     }
 
@@ -110,21 +111,21 @@ impl JSONObject {
 }
 
 #[derive(Debug)]
-pub struct Array {
+pub struct JSONArray {
     ints: Vec<ArrayItem<i32>>,
     floats: Vec<ArrayItem<f32>>,
     bools: Vec<ArrayItem<bool>>,
     strings: Vec<ArrayItem<String>>,
-    arrays: Vec<ArrayItem<Array>>,
+    arrays: Vec<ArrayItem<JSONArray>>,
     objects: Vec<ArrayItem<JSONObject>>,
     nulls: Vec<ArrayItem<Null>>,
 
     item_count: usize
 }
 
-impl Array {
+impl JSONArray {
     pub fn new() -> Self {
-        Array {
+        JSONArray {
             ints: Vec::new(),
             floats: Vec::new(),
             bools: Vec::new(),
@@ -176,7 +177,7 @@ impl Array {
         self.item_count += 1;
     }
 
-    pub fn add_array(&mut self, value: Array) {
+    pub fn add_array(&mut self, value: JSONArray) {
         self.arrays.push(
             ArrayItem {
                 item: value,
@@ -206,7 +207,7 @@ impl Array {
         self.item_count += 1;
     }
 
-    pub fn remove_int(&mut self, index: usize) {
+    pub fn remove_int(&mut self, index: usize) -> Result<i32, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.ints.iter().enumerate() {
             if item.index == index {
@@ -214,14 +215,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.ints.remove(index_to_remove as usize);
+        let result = self.ints.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_float(&mut self, index: usize) {
+    pub fn remove_float(&mut self, index: usize) -> Result<f32, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.floats.iter().enumerate() {
             if item.index == index {
@@ -229,14 +232,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.floats.remove(index_to_remove as usize);
+        let result = self.floats.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_bool(&mut self, index: usize) {
+    pub fn remove_bool(&mut self, index: usize) -> Result<bool, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.bools.iter().enumerate() {
             if item.index == index {
@@ -244,14 +249,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.bools.remove(index_to_remove as usize);
+        let result = self.bools.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_string(&mut self, index: usize) {
+    pub fn remove_string(&mut self, index: usize) -> Result<String, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.strings.iter().enumerate() {
             if item.index == index {
@@ -259,14 +266,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.strings.remove(index_to_remove as usize);
+        let result = self.strings.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_array(&mut self, index: usize) {
+    pub fn remove_array(&mut self, index: usize) -> Result<JSONArray, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.arrays.iter().enumerate() {
             if item.index == index {
@@ -274,14 +283,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.arrays.remove(index_to_remove as usize);
+        let result = self.arrays.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_object(&mut self, index: usize) {
+    pub fn remove_object(&mut self, index: usize) -> Result<JSONObject, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.objects.iter().enumerate() {
             if item.index == index {
@@ -289,14 +300,16 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.objects.remove(index_to_remove as usize);
+        let result = self.objects.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 
-    pub fn remove_null(&mut self, index: usize) {
+    pub fn remove_null(&mut self, index: usize) -> Result<Null, &str> {
         let mut index_to_remove: isize = -1;
         for (i, item) in self.nulls.iter().enumerate() {
             if item.index == index {
@@ -304,11 +317,13 @@ impl Array {
             }
         }
         if index_to_remove == -1 {
-            panic!("Index {} doesn't exist");
+            return Err("Index doesn't exist");
         }
 
-        self.nulls.remove(index_to_remove as usize);
+        let result = self.nulls.remove(index_to_remove as usize);
         fix_index_on_array_item_deletion(self, index_to_remove);
+
+        Ok(result.item)
     }
 }
 
@@ -318,10 +333,10 @@ struct ArrayItem<T> {
     index: usize
 }
 
-fn fix_index_on_array_item_deletion(array: &mut Array, index_to_remove: isize) {
+fn fix_index_on_array_item_deletion(array: &mut JSONArray, index_to_remove: isize) {
     let mut index_to_fix = index_to_remove + 1;
 
-    for _ in 0..array.item_count - index_to_fix as usize - 2 {  // Code untested
+    for _ in 0..array.item_count - index_to_fix as usize - 2 {  // TODO Code untested
         for item in array.ints.iter_mut() {
             if item.index == index_to_fix as usize {
                 item.index -= 1;

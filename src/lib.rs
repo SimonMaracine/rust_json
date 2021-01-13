@@ -2,7 +2,7 @@ mod data_structure;
 
 use std::fs::read_to_string;
 use std::error::Error;
-use data_structure::JSONObject;
+use data_structure::{JSONObject, JSONArray};
 
 pub fn load(file: String) -> Result<JSONObject, Box<dyn Error>> {
     let contents = read_to_string(file)?;
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn main() {
-        // load(String::from("samples/sample1.json"));
+        load(String::from("samples/sample1.json"));
         // println!("####################################");
         // load(String::from("samples/empty.json"));
         // println!("####################################");
@@ -241,7 +241,7 @@ mod tests {
         // println!("####################################");
         // load(String::from("samples/errors.json"));
         // println!("####################################");
-        load(String::from("samples/sample3.json"));
+        // load(String::from("samples/sample3.json"));
     }
 
     #[test]
@@ -252,6 +252,12 @@ mod tests {
 
         assert!(object.get_object(String::from("Foo")).is_none());
         assert_eq!(*object.get_int(String::from("Simon")).expect("Is none"), 18);
+
+        let mut array = JSONArray::new();
+        match array.remove_array(0) {
+            Ok(value) => println!("{:?}", value),
+            Err(e) => println!("{}", e)
+        }
     }
 }
 
