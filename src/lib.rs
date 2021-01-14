@@ -254,10 +254,27 @@ mod tests {
         assert_eq!(*object.get_int(String::from("Simon")).expect("Is none"), 18);
 
         let mut array = JSONArray::new();
-        match array.remove_array(0) {
+        array.add_int(18);
+        array.add_int(19);
+        array.add_float(18.6);
+        array.add_int(20);
+        array.add_int(21);
+        array.add_string(String::from("Simon"));
+        array.add_int(22);
+        println!("{:#?}", array);
+        match array.remove_int(0) {
             Ok(value) => println!("{:?}", value),
             Err(e) => println!("{}", e)
         }
+        match array.remove_float(1) {
+            Ok(value) => println!("{:?}", value),
+            Err(e) => println!("{}", e)
+        }
+        match array.remove_string(3) {
+            Ok(value) => println!("{:?}", value),
+            Err(e) => println!("{}", e)
+        }
+        println!("{:#?}", array);
     }
 }
 

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::error::Error;
 
 #[derive(Debug)]
 pub struct JSONObject {
@@ -208,7 +207,7 @@ impl JSONArray {
     }
 
     pub fn remove_int(&mut self, index: usize) -> Result<i32, &str> {
-        let mut index_to_remove: isize = -1;
+        let mut index_to_remove: isize = -1;  // The index of the object in the ints array
         for (i, item) in self.ints.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
@@ -219,7 +218,8 @@ impl JSONArray {
         }
 
         let result = self.ints.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -236,7 +236,8 @@ impl JSONArray {
         }
 
         let result = self.floats.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -253,7 +254,8 @@ impl JSONArray {
         }
 
         let result = self.bools.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -270,7 +272,8 @@ impl JSONArray {
         }
 
         let result = self.strings.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -287,7 +290,8 @@ impl JSONArray {
         }
 
         let result = self.arrays.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -304,7 +308,8 @@ impl JSONArray {
         }
 
         let result = self.objects.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -321,7 +326,8 @@ impl JSONArray {
         }
 
         let result = self.nulls.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index_to_remove);
+        fix_index_on_array_item_deletion(self, index);
+        self.item_count -= 1;
 
         Ok(result.item)
     }
@@ -333,60 +339,64 @@ struct ArrayItem<T> {
     index: usize
 }
 
-fn fix_index_on_array_item_deletion(array: &mut JSONArray, index_to_remove: isize) {
-    let mut index_to_fix = index_to_remove + 1;
+fn fix_index_on_array_item_deletion(array: &mut JSONArray, index: usize) {
+    if index == array.item_count - 1 {
+        return;
+    }
 
-    for _ in 0..array.item_count - index_to_fix as usize - 2 {  // TODO Code untested
+    let mut index_to_fix = index + 1;
+
+    for _ in 0..array.item_count - index_to_fix {
         for item in array.ints.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
 
         for item in array.floats.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
 
         for item in array.bools.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
 
         for item in array.strings.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
 
         for item in array.objects.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
 
         for item in array.nulls.iter_mut() {
-            if item.index == index_to_fix as usize {
+            if item.index == index_to_fix {
                 item.index -= 1;
                 index_to_fix += 1;
-                assert!(index_to_fix != array.item_count as isize + 1);
+                assert!(index_to_fix != array.item_count + 1);
                 continue;
             }
         }
