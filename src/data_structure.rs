@@ -310,6 +310,46 @@ impl JSONArray {
         }
     }
 
+    pub fn get(&mut self, index: usize) -> Result<ArrayTypeRef, &str> {
+        for (_, item) in self.ints.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Int(&mut item.item));
+            }
+        }
+        for (_, item) in self.floats.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Float(&mut item.item));
+            }
+        }
+        for (_, item) in self.bools.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Bool(&mut item.item));
+            }
+        }
+        for (_, item) in self.strings.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::String_(&mut item.item));
+            }
+        }
+        for (_, item) in self.arrays.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Array(&mut item.item));
+            }
+        }
+        for (_, item) in self.objects.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Object(&mut item.item));
+            }
+        }
+        for (_, item) in self.nulls.iter_mut().enumerate() {
+            if item.index == index {
+                return Ok(ArrayTypeRef::Null_(&mut item.item));
+            }
+        }
+
+        Err("Index doesn't exist")
+    }
+
     fn fix_index_on_array_item_deletion(&mut self, index: usize) {
         if index == self.item_count - 1 {
             return;
@@ -395,6 +435,17 @@ pub enum ArrayType {
     Array(JSONArray),
     Object(JSONObject),
     Null_(Null)
+}
+
+#[derive(Debug)]
+pub enum ArrayTypeRef<'a> {
+    Int(&'a mut i32),
+    Float(&'a mut f32),
+    Bool(&'a mut bool),
+    String_(&'a mut String),
+    Array(&'a mut JSONArray),
+    Object(&'a mut JSONObject),
+    Null_(&'a mut Null)
 }
 
 // The null value in JSON

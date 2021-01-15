@@ -2,7 +2,7 @@ mod data_structure;
 
 use std::fs::read_to_string;
 use std::error::Error;
-use data_structure::{JSONObject, JSONArray, ArrayType};
+use data_structure::{JSONObject, JSONArray, ArrayType, ArrayTypeRef};
 
 pub fn load(file: String) -> Result<JSONObject, Box<dyn Error>> {
     let contents = read_to_string(file)?;
@@ -262,6 +262,14 @@ mod tests {
         array.add_string(String::from("Simon"));
         array.add_int(22);
         // println!("{:#?}", array);
+
+        let num = array.get(0);
+        if let Ok(value) = num {
+            if let ArrayTypeRef::Int(val) = value {
+                println!("{}", val);
+            }
+        }
+
         match array.remove(0) {
             Ok(value) => {
                 if let ArrayType::Int(val) = value {
@@ -279,6 +287,42 @@ mod tests {
             Err(e) => println!("{}", e)
         }
         // println!("{:#?}", array);
+    }
+
+    struct Foo {
+        x: i32,
+        y: i32
+    }
+
+    struct Bar {
+        arr: Vec<Foo>
+    }
+
+    impl Bar {
+        fn get(&mut self, index: usize) -> Option<&mut Foo> {
+            for (i, item) in self.arr.iter_mut().enumerate() {
+                if i == index {
+                    return Some(item);
+                }
+            }
+            None
+        }
+    }
+
+    #[test]
+    fn test_vec() {
+        let vec = vec![
+            Foo { x: 1, y: 2},
+            Foo { x: 3, y: 4}
+        ];
+
+        let mut bar = Bar { arr: vec };
+
+        let foo = bar.get(0);
+        if let Some(value) = foo {
+            value.x = 18;
+        }
+
     }
 }
 
