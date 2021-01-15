@@ -206,130 +206,167 @@ impl JSONArray {
         self.item_count += 1;
     }
 
-    pub fn remove_int(&mut self, index: usize) -> Result<i32, &str> {
+    pub fn remove(&mut self, index: usize) -> Result<ArrayType, &str> {
         let mut index_to_remove: isize = -1;  // The index of the object in the ints array
+        let mut array_type = ArrayItemType::Int;
+
         for (i, item) in self.ints.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Int;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.ints.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_float(&mut self, index: usize) -> Result<f32, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.floats.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Float;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.floats.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_bool(&mut self, index: usize) -> Result<bool, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.bools.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Bool;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.bools.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_string(&mut self, index: usize) -> Result<String, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.strings.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::String_;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.strings.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_array(&mut self, index: usize) -> Result<JSONArray, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.arrays.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Array;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.arrays.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_object(&mut self, index: usize) -> Result<JSONObject, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.objects.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Object;
+                break;
             }
         }
-        if index_to_remove == -1 {
-            return Err("Index doesn't exist");
-        }
-
-        let result = self.objects.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
-
-        Ok(result.item)
-    }
-
-    pub fn remove_null(&mut self, index: usize) -> Result<Null, &str> {
-        let mut index_to_remove: isize = -1;
         for (i, item) in self.nulls.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
+                array_type = ArrayItemType::Null_;
+                break;
             }
         }
+
         if index_to_remove == -1 {
             return Err("Index doesn't exist");
         }
 
-        let result = self.nulls.remove(index_to_remove as usize);
-        fix_index_on_array_item_deletion(self, index);
-        self.item_count -= 1;
+        match array_type {
+            ArrayItemType::Int => {
+                let result = self.ints.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Int(result.item))
+            }
+            ArrayItemType::Float => {
+                let result = self.floats.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Float(result.item))
+            }
+            ArrayItemType::Bool => {
+                let result = self.bools.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Bool(result.item))
+            }
+            ArrayItemType::String_ => {
+                let result = self.strings.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::String_(result.item))
+            }
+            ArrayItemType::Array => {
+                let result = self.arrays.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Array(result.item))
+            }
+            ArrayItemType::Object => {
+                let result = self.objects.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Object(result.item))
+            }
+            ArrayItemType::Null_ => {
+                let result = self.nulls.remove(index_to_remove as usize);
+                self.fix_index_on_array_item_deletion(index);
+                self.item_count -= 1;
+                Ok(ArrayType::Null_(result.item))
+            }
+        }
+    }
 
-        Ok(result.item)
+    fn fix_index_on_array_item_deletion(&mut self, index: usize) {
+        if index == self.item_count - 1 {
+            return;
+        }
+
+        let mut index_to_fix = index + 1;
+
+        for _ in 0..self.item_count - index_to_fix {
+            for item in self.ints.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+            for item in self.floats.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+            for item in self.bools.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+            for item in self.strings.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+            for item in self.objects.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+            for item in self.nulls.iter_mut() {
+                if item.index == index_to_fix {
+                    item.index -= 1;
+                    index_to_fix += 1;
+                    assert!(index_to_fix != self.item_count + 1);
+                    continue;
+                }
+            }
+        }
     }
 }
 
@@ -339,68 +376,25 @@ struct ArrayItem<T> {
     index: usize
 }
 
-fn fix_index_on_array_item_deletion(array: &mut JSONArray, index: usize) {
-    if index == array.item_count - 1 {
-        return;
-    }
+enum ArrayItemType {
+    Int,
+    Float,
+    Bool,
+    String_,
+    Array,
+    Object,
+    Null_
+}
 
-    let mut index_to_fix = index + 1;
-
-    for _ in 0..array.item_count - index_to_fix {
-        for item in array.ints.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-
-        for item in array.floats.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-
-        for item in array.bools.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-
-        for item in array.strings.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-
-        for item in array.objects.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-
-        for item in array.nulls.iter_mut() {
-            if item.index == index_to_fix {
-                item.index -= 1;
-                index_to_fix += 1;
-                assert!(index_to_fix != array.item_count + 1);
-                continue;
-            }
-        }
-    }
+#[derive(Debug)]
+pub enum ArrayType {
+    Int(i32),
+    Float(f32),
+    Bool(bool),
+    String_(String),
+    Array(JSONArray),
+    Object(JSONObject),
+    Null_(Null)
 }
 
 // The null value in JSON
