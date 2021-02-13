@@ -350,6 +350,84 @@ impl JSONArray {
         Err("Index doesn't exist")
     }
 
+    pub fn set_int(&mut self, value: i32, index: usize) -> Result<(), &str> {
+        self.ints.push(
+            ArrayItem {
+                item: value,
+                index: index
+            }
+        );
+
+        for (i, item) in self.ints.iter().enumerate() {  // Not well thought yet
+            if item.index == index {
+                self.ints.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.floats.iter().enumerate() {
+            if item.index == index {
+                self.floats.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.bools.iter().enumerate() {
+            if item.index == index {
+                self.bools.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.strings.iter().enumerate() {
+            if item.index == index {
+                self.strings.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.arrays.iter().enumerate() {
+            if item.index == index {
+                self.arrays.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.objects.iter().enumerate() {
+            if item.index == index {
+                self.objects.remove(i);
+                break;
+            }
+        }
+        for (i, item) in self.nulls.iter().enumerate() {
+            if item.index == index {
+                self.nulls.remove(i);
+                break;
+            }
+        }
+
+        Err("Placeholder")
+    }
+
+    pub fn set_float(&mut self, value: f32, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
+    pub fn set_bool(&mut self, value: bool, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
+    pub fn set_string(&mut self, value: String, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
+    pub fn set_array(&mut self, value: JSONArray, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
+    pub fn set_object(&mut self, value: JSONObject, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
+    pub fn set_null(&mut self, value: Null, index: usize) -> Result<(), &'static str> {
+        Err("Placeholder")
+    }
+
     fn fix_index_on_array_item_deletion(&mut self, index: usize) {
         if index == self.item_count - 1 {
             return;

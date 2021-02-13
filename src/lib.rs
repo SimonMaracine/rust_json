@@ -289,39 +289,39 @@ mod tests {
         // println!("{:#?}", array);
     }
 
-    struct Foo {
-        x: i32,
-        y: i32
-    }
+    // struct Foo {
+    //     x: i32,
+    //     y: i32
+    // }
 
-    struct Bar {
-        arr: Vec<Foo>
-    }
+    // struct Bar {
+    //     arr: Vec<Foo>
+    // }
 
-    impl Bar {
-        fn get(&mut self, index: usize) -> Option<&mut Foo> {
-            for (i, item) in self.arr.iter_mut().enumerate() {
-                if i == index {
-                    return Some(item);
-                }
-            }
-            None
-        }
-    }
+    // impl Bar {
+    //     fn get(&mut self, index: usize) -> Option<&mut Foo> {
+    //         for (i, item) in self.arr.iter_mut().enumerate() {
+    //             if i == index {
+    //                 return Some(item);
+    //             }
+    //         }
+    //         None
+    //     }
+    // }
 
     #[test]
     fn test_vec() {
-        let vec = vec![
-            Foo { x: 1, y: 2},
-            Foo { x: 3, y: 4}
-        ];
+        // let vec = vec![
+        //     Foo { x: 1, y: 2},
+        //     Foo { x: 3, y: 4}
+        // ];
 
-        let mut bar = Bar { arr: vec };
+        // let mut bar = Bar { arr: vec };
 
-        let foo = bar.get(0);
-        if let Some(value) = foo {
-            value.x = 18;
-        }
+        // let foo = bar.get(0);
+        // if let Some(value) = foo {
+        //     value.x = 18;
+        // }
 
     }
 }
