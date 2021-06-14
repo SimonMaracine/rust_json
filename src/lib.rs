@@ -23,7 +23,7 @@ pub fn dump(object: JsonObject) -> String {
     String::new()
 }
 
-fn tokenize<'a>(contents: String) -> Result<Vec<Token>, &'a str> {
+fn tokenize(contents: String) -> Result<Vec<Token>, &'static str> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut current_character: Option<char> = None;
@@ -103,8 +103,8 @@ fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
     }
 }
 
-fn build_string<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                    current_position: &mut i32) -> Result<String, &'a str> {
+fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                    current_position: &mut i32) -> Result<String, &'static str> {
     let mut string = String::new();
 
     loop {
@@ -127,8 +127,8 @@ fn build_string<'a>(contents_chars: &Vec<char>, current_character: &mut Option<c
     Ok(string)
 }
 
-fn build_number<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                    current_position: &mut i32) -> Result<String, &'a str> {
+fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                    current_position: &mut i32) -> Result<String, &'static str> {
     let mut number = String::new();
     let mut is_floating_point = false;
 
@@ -175,8 +175,8 @@ fn build_number<'a>(contents_chars: &Vec<char>, current_character: &mut Option<c
     Ok(number)
 }
 
-fn build_keyword<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                     current_position: &mut i32) -> Result<String, &'a str> {
+fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                     current_position: &mut i32) -> Result<String, &'static str> {
     let mut keyword = String::new();
 
     keyword.push(current_character.unwrap());
@@ -222,15 +222,15 @@ enum Token {
 }
 
 #[derive(Debug)]
-struct ParseError<'a>(&'a str);
+struct ParseError(&'static str);
 
-impl fmt::Display for ParseError<'_> {
+impl fmt::Display for ParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "Parse error: {}", self.0)
     }
 }
 
-impl Error for ParseError<'_> {}
+impl Error for ParseError {}
 
 #[cfg(test)]
 mod tests {
