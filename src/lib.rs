@@ -1,209 +1,210 @@
+#![allow(unused)]
+
 mod data_structure;
 
 use std::fs::read_to_string;
 use std::error::Error;
-use data_structure::{JSONObject, JSONArray, ArrayType, ArrayTypeRef};
+use std::fmt;
+use data_structure::{JsonObject, JsonArray, ArrayType, ArrayTypeMut};
 
-pub fn load(file: String) -> Result<JSONObject, Box<dyn Error>> {
+pub fn load<'object>(file: String) -> Result<JsonObject<'object>, Box<dyn Error>> {
     let contents = read_to_string(file)?;
     let tokens = tokenize(contents);
-    println!("{:#?}", tokens);
 
+    match tokens {
+        Ok(token_arr) => println!("{:#?}", token_arr),
+        Err(message) => return Err(Box::new(ParseError(message)))
+    }
 
-
-    Ok(JSONObject::new())
+    Ok(JsonObject::new())
 }
 
-pub fn dump(json: JSONObject) -> String {
+pub fn dump(object: JsonObject) -> String {
     String::new()
 }
 
-fn tokenize(contents: String) -> Vec<Token> {
+fn tokenize<'a>(contents: String) -> Result<Vec<Token>, &'a str> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut state = State::InNothing;
 
-    let mut string = String::new();
-    let mut number = String::new();
-    let mut keyword = String::new();
+    let mut current_character: Option<char> = None;
+    let mut current_position = -1;
 
-    let mut last_character = '\0';
+    let contents_chars = contents.chars().collect();
 
-    for character in contents.chars() {
-        print!("{} ", character);
+    advance(&contents_chars, &mut current_character, &mut current_position);
 
+    while let Some(character) = current_character {
+        print!("{}", character);
         match character {
-            '{' => {
-                if let State::InNumber = state {
-                    tokens.push(Token::Number(number.clone()));
-                    number.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in number
-                } else if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::LeftBrace);  // May be an error
-                }
-            }
-            '[' => {
-                if let State::InNumber = state {
-                    tokens.push(Token::Number(number.clone()));
-                    number.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in number
-                } else if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::LeftBracket);  // May be an error
-                }
-            }
-            '}' => {
-                if let State::InNumber = state {
-                    tokens.push(Token::Number(number.clone()));
-                    number.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in number
-                } else if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::RightBrace);  // May be an error
-                }
-            }
-            ']' => {
-                if let State::InNumber = state {
-                    tokens.push(Token::Number(number.clone()));
-                    number.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in number
-                } else if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::RightBracket);  // May be an error
-                }
-            }
-            ':' => {
-                if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::Colon);  // May be an error
-                }
-            }
-            ',' => {
-                if let State::InNumber = state {
-                    tokens.push(Token::Number(number.clone()));
-                    number.clear();
-                    state = State::InNothing;  // Not really in nothing, but not in number
-                } else if let State::InString = state {
-                    string.push(character);
-                } else {
-                    tokens.push(Token::Comma);  // May be an error
-                }
-            }
+            ' ' | '\t' |
+            '\n' | '\r' => (),
+
+            '{' => tokens.push(Token::LeftBrace),
+            '}' => tokens.push(Token::RightBrace),
+            '[' => tokens.push(Token::LeftBracket),
+            ']' => tokens.push(Token::RightBracket),
+            ':' => tokens.push(Token::Colon),
+            ',' => tokens.push(Token::Comma),
+
             '"' => {
-                if let State::InString = state  {
-                    if last_character != '\\' {
-                        tokens.push(Token::String(string.clone()));
-                        string.clear();
-                        state = State::InNothing;  // Not really in nothing, but not in string
-                    } else {
-                        string.push(character);
-                    }
-                } else if last_character == ':' || last_character == '[' || last_character == ',' || last_character == '{' {
-                    state = State::InString;
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                let string = build_string(&contents_chars, &mut current_character,
+                                          &mut current_position);
+                match string {
+                    Ok(value) => tokens.push(Token::String(value)),
+                    Err(message) => return Err(message)
                 }
             }
-            '.' => {
-                if let State::InString = state  {
-                    string.push(character);
-                } else if let State::InNumber = state {
-                    number.push(character);
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
-                }
-            }
-            '0' | '1' | '2' | '3' |
-            '4' | '5' | '6' | '7' |
+
+            '0' | '1' |
+            '2' | '3' |
+            '4' | '5' |
+            '6' | '7' |
             '8' | '9' => {
-                if let State::InString = state {
-                    string.push(character);
-                } else if let State::InNumber = state {
-                    number.push(character);
-                } else if last_character == ':' || last_character == '[' || last_character == ',' {
-                    number.push(character);
-                    state = State::InNumber;
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                let number = build_number(&contents_chars, &mut current_character,
+                                          &mut current_position);
+                match number {
+                    Ok(value) => tokens.push(Token::Number(value)),
+                    Err(message) => return Err(message)
                 }
+
+                // This is so that the character after the last number
+                // character is evaluated (to not call advance())
+                continue;
             }
-            '\\' => {
-                if let State::InString = state {
-                    if last_character == '\\' {
-                        string.push(character);
-                    } else {
-                        tokens.push(Token::Unidentified(character.to_string()));  // Will be error
-                    }
-                }
-            }
-            ' ' | '\n' |
-            '\r' | '\t' => {
-                if let State::InString = state {
-                    if character != '\n' {
-                        string.push(character);
-                    } else {
-                        tokens.push(Token::Unidentified(character.to_string()));  // Will be error
-                    }
-                }
-                // Else ignore it completely
-            }
+
             't' | 'f' | 'n' => {
-                if let State::InString = state {
-                    string.push(character);
-                } else if last_character == ':' || last_character == '[' || last_character == ',' {
-                    keyword.push(character);
-                    state = State::InKeyword;
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
+                let keyword = build_keyword(&contents_chars, &mut current_character,
+                                            &mut current_position);
+                match keyword {
+                    Ok(value) => tokens.push(Token::Keyword(value)),
+                    Err(message) => return Err(message)
                 }
+
+                // This is so that the character after the last number
+                // character is evaluated (to not call advance())
+                continue;
             }
-            'e' | 'l' => {
-                if let State::InString = state {
-                    string.push(character);
-                } else if let State::InKeyword = state {
-                    if character == 'e' {
-                        keyword.push(character);
-                        tokens.push(Token::Keyword(keyword.clone()));
-                        keyword.clear();
-                        state = State::InNothing;
-                    } else {  // Must be 'l'
-                        if last_character == 'l' {
-                            keyword.push(character);
-                            tokens.push(Token::Keyword(keyword.clone()));
-                            keyword.clear();
-                            state = State::InNothing;
-                        } else {
-                            keyword.push(character);
-                        }
-                    }
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
-                }
-            }
-            _ => {  // Other letters and characters
-                if let State::InString = state {
-                    string.push(character);
-                } else if let State::InKeyword = state {
-                    keyword.push(character);
-                } else {
-                    tokens.push(Token::Unidentified(character.to_string()));  // Will be error
-                }
-            }
+
+            _ => tokens.push(Token::Unidentified(character.to_string()))
+        }
+        advance(&contents_chars, &mut current_character, &mut current_position);
+    }
+
+    Ok(tokens)
+}
+
+fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+           current_position: &mut i32) {
+    *current_position = *current_position + 1;
+    if *current_position < contents_chars.len() as i32 {
+        *current_character = Some(contents_chars[*current_position as usize]);
+    } else {
+        *current_character = None;
+    }
+}
+
+fn build_string<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                    current_position: &mut i32) -> Result<String, &'a str> {
+    let mut string = String::new();
+
+    loop {
+        advance(contents_chars, current_character, current_position);
+        if let Some(character) = current_character {  // TODO Temporary
+            print!("{}", character);
         }
 
-        match character {  // Don't keep whitespace
-            ' ' | '\n' |
-            '\r' | '\t' => (),
-            _ => last_character = character
+        if let Some(character) = current_character {
+            if *character == '"' {
+                break;
+            } else {
+                string.push(*character);
+            }
+        } else {  // character is None
+            return Err("Missing right double quotes");
         }
     }
 
-    tokens
+    Ok(string)
+}
+
+fn build_number<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                    current_position: &mut i32) -> Result<String, &'a str> {
+    let mut number = String::new();
+    let mut is_floating_point = false;
+
+    let mut last_character = '\0';
+
+    number.push(current_character.unwrap());
+
+    loop {
+        advance(contents_chars, current_character, current_position);
+        if let Some(character) = current_character {  // TODO Temporary
+            print!("{}", character);
+        }
+
+        if let Some(character) = current_character {
+            match character {
+                '0' | '1' |
+                '2' | '3' |
+                '4' | '5' |
+                '6' | '7' |
+                '8' | '9' => number.push(*character),
+
+                '.' => {
+                    if !is_floating_point {
+                        number.push(*character);
+                        is_floating_point = true;
+                    } else {
+                        return Err("Invalid number format");
+                    }
+                }
+
+                _ => {
+                    if last_character == '.' {
+                        return Err("Invalid number format");
+                    }
+                    break;
+                }
+            }
+            last_character = *character;
+        } else {  // character is None
+            return Err("Reached EOF");
+        }
+    }
+
+    Ok(number)
+}
+
+fn build_keyword<'a>(contents_chars: &Vec<char>, current_character: &mut Option<char>,
+                     current_position: &mut i32) -> Result<String, &'a str> {
+    let mut keyword = String::new();
+
+    keyword.push(current_character.unwrap());
+
+    loop {
+        advance(contents_chars, current_character, current_position);
+        if let Some(character) = current_character {  // TODO Temporary
+            print!("{}", character);
+        }
+
+        if let Some(character) = current_character {
+            match character {
+                'r' | 'u' | 'e' |
+                'a' | 'l' | 's' => keyword.push(*character),
+
+                _ => {
+                    if !(keyword == "true" || keyword == "false" || keyword == "null") {
+                        return Err("Invalid keyword");
+                    }
+                    break;
+                }
+            }
+        } else {  // character is None
+            return Err("Reached EOF");
+        }
+    }
+
+    Ok(keyword)
 }
 
 #[derive(Debug)]
@@ -220,12 +221,16 @@ enum Token {
     Unidentified(String)  // When this is used, there will be an error
 }
 
-enum State {
-    InNothing,
-    InString,
-    InNumber,
-    InKeyword
+#[derive(Debug)]
+struct ParseError<'a>(&'a str);
+
+impl fmt::Display for ParseError<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "Parse error: {}", self.0)
+    }
 }
+
+impl Error for ParseError<'_> {}
 
 #[cfg(test)]
 mod tests {
@@ -233,39 +238,34 @@ mod tests {
 
     #[test]
     fn main() {
-        load(String::from("samples/sample1.json"));
-        // println!("####################################");
-        // load(String::from("samples/empty.json"));
-        // println!("####################################");
-        // load(String::from("samples/sample2.json"));
-        // println!("####################################");
-        // load(String::from("samples/errors.json"));
-        // println!("####################################");
-        // load(String::from("samples/sample3.json"));
+        let result = load(String::from("samples/sample1.json"));
+        if let Err(error) = result {
+            println!("{}", error);
+        }
     }
 
     #[test]
     fn data_structure() {
-        let mut object = JSONObject::new();
-        object.insert_int(String::from("Simon"), 18);
-        object.insert_bool(String::from("male"), true);
+        let mut object = JsonObject::new();
+        object.insert_int("Simon", 18);
+        object.insert_bool("male", true);
 
-        assert!(object.get_object(String::from("Foo")).is_none());
-        assert_eq!(*object.get_int(String::from("Simon")).expect("Is none"), 18);
+        assert!(object.get_object("Foo").is_none());
+        assert_eq!(*object.get_int("Simon").expect("Is none"), 18);
 
-        let mut array: JSONArray = JSONArray::new();
+        let mut array = JsonArray::new();
         array.add_int(18);
         array.add_int(19);
         array.add_float(18.6);
         array.add_int(20);
         array.add_int(21);
-        array.add_string(String::from("Simon"));
+        array.add_string(&String::from("Simon"));
         array.add_int(22);
         // println!("{:#?}", array);
 
         let num = array.get(0);
         if let Ok(value) = num {
-            if let ArrayTypeRef::Int(val) = value {
+            if let ArrayTypeMut::Int(val) = value {
                 println!("{}", val);
             }
         }
@@ -288,66 +288,4 @@ mod tests {
         }
         // println!("{:#?}", array);
     }
-
-    // struct Foo {
-    //     x: i32,
-    //     y: i32
-    // }
-
-    // struct Bar {
-    //     arr: Vec<Foo>
-    // }
-
-    // impl Bar {
-    //     fn get(&mut self, index: usize) -> Option<&mut Foo> {
-    //         for (i, item) in self.arr.iter_mut().enumerate() {
-    //             if i == index {
-    //                 return Some(item);
-    //             }
-    //         }
-    //         None
-    //     }
-    // }
-
-    #[test]
-    fn test_vec() {
-        // let vec = vec![
-        //     Foo { x: 1, y: 2},
-        //     Foo { x: 3, y: 4}
-        // ];
-
-        // let mut bar = Bar { arr: vec };
-
-        // let foo = bar.get(0);
-        // if let Some(value) = foo {
-        //     value.x = 18;
-        // }
-
-    }
 }
-
-// match character {
-//     '{' => {
-//         state_stack.push(State::InObject);
-//     },
-
-//     '[' => {
-//         state_stack.push(State::InArray);
-//     },
-//     '"' => {
-//         let state = match state_stack.last() {
-//             Some(s) => s,
-//             None => &State::InNothing
-//         };
-
-//         if let State::InString = *state  {
-//             state_stack.push(State::InString);
-//         } else {
-//             state_stack.pop();
-//         }
-//     },
-//     ']' | '}' => {
-//         state_stack.pop();
-//     },
-//     _ => ()
-// }

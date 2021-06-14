@@ -1,5 +1,9 @@
 {
     "name": "Simon",
     "age": 18,
-    "array": [1, 2, 3]
+    "array": [1, 2, 3.0],
+    "obj": {
+        "type": "int",
+        "refcount": 2
+    }
 }
