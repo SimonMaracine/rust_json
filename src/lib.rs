@@ -80,7 +80,7 @@ fn tokenize(contents: String) -> Result<Vec<Token>, &'static str> {
                     Err(message) => return Err(message)
                 }
 
-                // This is so that the character after the last number
+                // This is so that the character after the last keyword
                 // character is evaluated (to not call advance())
                 continue;
             }
