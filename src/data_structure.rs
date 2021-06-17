@@ -1,15 +1,16 @@
 #![allow(unused)]
 
 use std::collections::HashMap;
+use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JsonObject<'a> {
     int_pairs: HashMap<&'a str, i32>,
     float_pairs: HashMap<&'a str, f32>,
     bool_pairs: HashMap<&'a str, bool>,
-    string_pairs: HashMap<&'a str, &'a String>,
-    array_pairs: HashMap<&'a str, &'a JsonArray<'a>>,
-    object_pairs: HashMap<&'a str, &'a JsonObject<'a>>,
+    string_pairs: HashMap<&'a str, String>,
+    array_pairs: HashMap<&'a str, JsonArray<'a>>,
+    object_pairs: HashMap<&'a str, JsonObject<'a>>,
     null_pairs: HashMap<&'a str, Null>
 }
 
@@ -38,15 +39,15 @@ impl<'a> JsonObject<'a> {
         self.bool_pairs.insert(key, value);
     }
 
-    pub fn insert_string(&mut self, key: &'a str, value: &'a String) {
+    pub fn insert_string(&mut self, key: &'a str, value: String) {
         self.string_pairs.insert(key, value);
     }
 
-    pub fn insert_array(&mut self, key: &'a str, value: &'a JsonArray) {
+    pub fn insert_array(&mut self, key: &'a str, value: JsonArray<'a>) {
         self.array_pairs.insert(key, value);
     }
 
-    pub fn insert_object(&mut self, key: &'a str, value: &'a JsonObject<'a>) {
+    pub fn insert_object(&mut self, key: &'a str, value: JsonObject<'a>) {
         self.object_pairs.insert(key, value);
     }
 
@@ -66,15 +67,15 @@ impl<'a> JsonObject<'a> {
         self.bool_pairs.remove(key)
     }
 
-    pub fn delete_string(&mut self, key: &'a str) -> Option<&String> {
+    pub fn delete_string(&mut self, key: &'a str) -> Option<String> {
         self.string_pairs.remove(key)
     }
 
-    pub fn delete_array(&mut self, key: &'a str) -> Option<&JsonArray> {
+    pub fn delete_array(&mut self, key: &'a str) -> Option<JsonArray> {
         self.array_pairs.remove(key)
     }
 
-    pub fn delete_object(&mut self, key: &'a str) -> Option<&JsonObject> {
+    pub fn delete_object(&mut self, key: &'a str) -> Option<JsonObject> {
         self.object_pairs.remove(key)
     }
 
@@ -82,43 +83,64 @@ impl<'a> JsonObject<'a> {
         self.null_pairs.remove(key)
     }
 
-    pub fn get_int(&self, key: &'a str) -> Option<&i32> {
-        self.int_pairs.get(key)
+    pub fn get_int(&self, key: &'a str) -> Option<i32> {
+        if let Some(result) = self.int_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_float(&self, key: &'a str) -> Option<&f32> {
-        self.float_pairs.get(key)
+    pub fn get_float(&self, key: &'a str) -> Option<f32> {
+        if let Some(result) = self.float_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_bool(&self, key: &'a str) -> Option<&bool> {
-        self.bool_pairs.get(key)
+    pub fn get_bool(&self, key: &'a str) -> Option<bool> {
+        if let Some(result) = self.bool_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_string(&self, key: &'a str) -> Option<&&String> {
-        self.string_pairs.get(key)
+    pub fn get_string(&self, key: &'a str) -> Option<String> {
+        if let Some(result) = self.string_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_array(&self, key: &'a str) -> Option<&&JsonArray> {
-        self.array_pairs.get(key)
+    pub fn get_array(&self, key: &'a str) -> Option<JsonArray> {
+        if let Some(result) = self.array_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_object(&self, key: &'a str) -> Option<&&JsonObject> {
-        self.object_pairs.get(key)
+    pub fn get_object(&mut self, key: &'a str) -> Option<JsonObject> {
+        if let Some(result) = self.object_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 
-    pub fn get_null(&self, key: &'a str) -> Option<&Null> {
-        self.null_pairs.get(key)
+    pub fn get_null(&self, key: &'a str) -> Option<Null> {
+        if let Some(result) = self.null_pairs.get(key) {
+            return Some(result.clone());
+        }
+        None
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JsonArray<'a> {
     ints: Vec<ArrayItem<i32>>,
     floats: Vec<ArrayItem<f32>>,
     bools: Vec<ArrayItem<bool>>,
-    strings: Vec<ArrayItemRef<'a, String>>,
-    arrays: Vec<ArrayItemRef<'a, JsonArray<'a>>>,
-    objects: Vec<ArrayItemRef<'a, JsonObject<'a>>>,
+    strings: Vec<ArrayItem<String>>,
+    arrays: Vec<ArrayItem<JsonArray<'a>>>,
+    objects: Vec<ArrayItem<JsonObject<'a>>>,
     nulls: Vec<ArrayItem<Null>>,
 
     item_count: usize
@@ -168,9 +190,9 @@ impl<'a> JsonArray<'a> {
         self.item_count += 1;
     }
 
-    pub fn add_string(&mut self, value: &'a String) {
+    pub fn add_string(&mut self, value: String) {
         self.strings.push(
-            ArrayItemRef {
+            ArrayItem {
                 item: value,
                 index: self.item_count
             }
@@ -178,9 +200,9 @@ impl<'a> JsonArray<'a> {
         self.item_count += 1;
     }
 
-    pub fn add_array(&mut self, value: &'a JsonArray) {
+    pub fn add_array(&mut self, value: JsonArray<'a>) {
         self.arrays.push(
-            ArrayItemRef {
+            ArrayItem {
                 item: value,
                 index: self.item_count
             }
@@ -188,9 +210,9 @@ impl<'a> JsonArray<'a> {
         self.item_count += 1;
     }
 
-    pub fn add_object(&mut self, value: &'a JsonObject) {
+    pub fn add_object(&mut self, value: JsonObject<'a>) {
         self.objects.push(
-            ArrayItemRef {
+            ArrayItem {
                 item: value,
                 index: self.item_count
             }
@@ -312,40 +334,40 @@ impl<'a> JsonArray<'a> {
         }
     }
 
-    pub fn get(&mut self, index: usize) -> Result<ArrayTypeMut, &str> {
-        for (_, item) in self.ints.iter_mut().enumerate() {
+    pub fn get(&mut self, index: usize) -> Result<ArrayTypeRef, &str> {
+        for item in self.ints.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Int(item.item));
+                return Ok(ArrayTypeRef::Int(item.item));
             }
         }
-        for (_, item) in self.floats.iter_mut().enumerate() {
+        for item in self.floats.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Float(item.item));
+                return Ok(ArrayTypeRef::Float(item.item));
             }
         }
-        for (_, item) in self.bools.iter_mut().enumerate() {
+        for item in self.bools.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Bool(item.item));
+                return Ok(ArrayTypeRef::Bool(item.item));
             }
         }
-        for (_, item) in self.strings.iter_mut().enumerate() {
+        for item in self.strings.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::String_(&mut item.item));
+                return Ok(ArrayTypeRef::String_(&item.item));
             }
         }
-        for (_, item) in self.arrays.iter_mut().enumerate() {
+        for item in self.arrays.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Array(&mut item.item));
+                return Ok(ArrayTypeRef::Array(&item.item));
             }
         }
-        for (_, item) in self.objects.iter_mut().enumerate() {
+        for item in self.objects.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Object(&mut item.item));
+                return Ok(ArrayTypeRef::Object(&item.item));
             }
         }
-        for (_, item) in self.nulls.iter_mut().enumerate() {
+        for item in self.nulls.iter() {
             if item.index == index {
-                return Ok(ArrayTypeMut::Null_(item.item));
+                return Ok(ArrayTypeRef::Null_(item.item));
             }
         }
 
@@ -492,15 +514,9 @@ impl<'a> JsonArray<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ArrayItem<T> {
     item: T,
-    index: usize
-}
-
-#[derive(Debug)]
-struct ArrayItemRef<'a, T> {
-    item: &'a T,
     index: usize
 }
 
@@ -515,24 +531,24 @@ enum ArrayItemType {
 }
 
 #[derive(Debug)]
-pub enum ArrayType<'a, 'b> {
+pub enum ArrayType<'a> {
+    Int(i32),
+    Float(f32),
+    Bool(bool),
+    String_(String),
+    Array(JsonArray<'a>),
+    Object(JsonObject<'a>),
+    Null_(Null)
+}
+
+#[derive(Debug)]
+pub enum ArrayTypeRef<'a, 'b> {
     Int(i32),
     Float(f32),
     Bool(bool),
     String_(&'a String),
     Array(&'a JsonArray<'b>),
     Object(&'a JsonObject<'b>),
-    Null_(Null)
-}
-
-#[derive(Debug)]
-pub enum ArrayTypeMut<'a, 'b> {
-    Int(i32),
-    Float(f32),
-    Bool(bool),
-    String_(&'a mut String),
-    Array(&'a mut JsonArray<'b>),
-    Object(&'a mut JsonObject<'b>),
     Null_(Null)
 }
 

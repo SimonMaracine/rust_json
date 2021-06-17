@@ -1,11 +1,11 @@
-// #![allow(unused)]
+#![allow(unused)]
 
 mod data_structure;
 
 use std::fs::read_to_string;
 use std::error::Error;
 use std::fmt;
-use data_structure::{JsonObject, JsonArray, ArrayType, ArrayTypeMut};
+use data_structure::{JsonObject, JsonArray, ArrayType, ArrayTypeRef};
 
 pub fn load<'object>(file: String) -> Result<JsonObject<'object>, Box<dyn Error>> {
     let contents = read_to_string(file)?;
@@ -19,6 +19,7 @@ pub fn load<'object>(file: String) -> Result<JsonObject<'object>, Box<dyn Error>
     Ok(JsonObject::new())
 }
 
+#[allow(unused)]
 pub fn dump(object: JsonObject) -> String {
     String::new()
 }
@@ -251,7 +252,8 @@ mod tests {
         object.insert_bool("male", true);
 
         assert!(object.get_object("Foo").is_none());
-        assert_eq!(*object.get_int("Simon").expect("Is none"), 18);
+        assert_eq!(object.get_int("Simon").expect("Is none"), 18);
+        // object.get_int("some_key");
 
         let mut array = JsonArray::new();
         array.add_int(18);
@@ -259,13 +261,13 @@ mod tests {
         array.add_float(18.6);
         array.add_int(20);
         array.add_int(21);
-        array.add_string(&String::from("Simon"));
+        array.add_string(String::from("Simon"));
         array.add_int(22);
         // println!("{:#?}", array);
 
         let num = array.get(0);
         if let Ok(value) = num {
-            if let ArrayTypeMut::Int(val) = value {
+            if let ArrayTypeRef::Int(val) = value {
                 println!("{}", val);
             }
         }
@@ -287,5 +289,32 @@ mod tests {
             Err(e) => println!("{}", e)
         }
         // println!("{:#?}", array);
+    }
+
+    #[test]
+    fn real_life_example() {
+        let mut base = JsonObject::new();
+        let mut new_base = base.clone();
+
+        let mut my_array = JsonArray::new();
+        my_array.add_int(12);
+        my_array.add_bool(true);
+        my_array.add_string(String::from("Simon"));
+
+        base.insert_float("my_float", 18.95);
+        base.insert_array("my_array", my_array);
+
+        // Get the array, mutate it and put it back
+        let mut result = base.get_array("my_array");
+        if let Some(mut array) = result {
+            array.add_int(2);
+            array.add_float(3.1415);
+
+            println!("{:#?}", base);
+
+            new_base.insert_array("my_array", array);
+
+            println!("{:#?}", new_base);
+        }
     }
 }
