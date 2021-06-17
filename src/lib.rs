@@ -1,4 +1,4 @@
-#![allow(unused)]
+// #![allow(unused)]
 
 mod data_structure;
 
@@ -104,7 +104,7 @@ fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
 }
 
 fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                    current_position: &mut i32) -> Result<String, &'static str> {
+                current_position: &mut i32) -> Result<String, &'static str> {
     let mut string = String::new();
 
     loop {
@@ -176,7 +176,7 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
 }
 
 fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                     current_position: &mut i32) -> Result<String, &'static str> {
+                 current_position: &mut i32) -> Result<String, &'static str> {
     let mut keyword = String::new();
 
     keyword.push(current_character.unwrap());
