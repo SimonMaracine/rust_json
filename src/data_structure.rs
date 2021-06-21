@@ -257,7 +257,7 @@ impl<'a> JsonArray<'a> {
         for (i, item) in self.strings.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
-                array_type = ArrayItemType::String_;
+                array_type = ArrayItemType::String;
                 break;
             }
         }
@@ -278,7 +278,7 @@ impl<'a> JsonArray<'a> {
         for (i, item) in self.nulls.iter().enumerate() {
             if item.index == index {
                 index_to_remove = i as isize;
-                array_type = ArrayItemType::Null_;
+                array_type = ArrayItemType::Null;
                 break;
             }
         }
@@ -306,11 +306,11 @@ impl<'a> JsonArray<'a> {
                 self.item_count -= 1;
                 Ok(ArrayType::Bool(result.item))
             }
-            ArrayItemType::String_ => {
+            ArrayItemType::String => {
                 let result = self.strings.remove(index_to_remove as usize);
                 self.fix_index_on_array_item_deletion(index);
                 self.item_count -= 1;
-                Ok(ArrayType::String_(result.item))
+                Ok(ArrayType::String(result.item))
             }
             ArrayItemType::Array => {
                 let result = self.arrays.remove(index_to_remove as usize);
@@ -324,11 +324,11 @@ impl<'a> JsonArray<'a> {
                 self.item_count -= 1;
                 Ok(ArrayType::Object(result.item))
             }
-            ArrayItemType::Null_ => {
+            ArrayItemType::Null => {
                 let result = self.nulls.remove(index_to_remove as usize);
                 self.fix_index_on_array_item_deletion(index);
                 self.item_count -= 1;
-                Ok(ArrayType::Null_(result.item))
+                Ok(ArrayType::Null(result.item))
             }
         }
     }
@@ -351,7 +351,7 @@ impl<'a> JsonArray<'a> {
         }
         for item in self.strings.iter() {
             if item.index == index {
-                return Ok(ArrayTypeRef::String_(&item.item));
+                return Ok(ArrayTypeRef::String(&item.item));
             }
         }
         for item in self.arrays.iter() {
@@ -366,7 +366,7 @@ impl<'a> JsonArray<'a> {
         }
         for item in self.nulls.iter() {
             if item.index == index {
-                return Ok(ArrayTypeRef::Null_(item.item));
+                return Ok(ArrayTypeRef::Null(item.item));
             }
         }
 
@@ -523,10 +523,10 @@ enum ArrayItemType {
     Int,
     Float,
     Bool,
-    String_,
+    String,
     Array,
     Object,
-    Null_
+    Null
 }
 
 #[derive(Debug)]
@@ -534,10 +534,10 @@ pub enum ArrayType<'a> {
     Int(i32),
     Float(f32),
     Bool(bool),
-    String_(String),
+    String(String),
     Array(JsonArray<'a>),
     Object(JsonObject<'a>),
-    Null_(Null)
+    Null(Null)
 }
 
 #[derive(Debug)]
@@ -545,10 +545,10 @@ pub enum ArrayTypeRef<'a, 'b> {
     Int(i32),
     Float(f32),
     Bool(bool),
-    String_(&'a String),
+    String(&'a String),
     Array(&'a JsonArray<'b>),
     Object(&'a JsonObject<'b>),
-    Null_(Null)
+    Null(Null)
 }
 
 // The null value in JSON

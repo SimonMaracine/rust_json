@@ -21,7 +21,6 @@ pub fn load<'object>(file: String) -> Result<JsonObject<'object>, Box<dyn Error>
     Ok(JsonObject::new())
 }
 
-#[allow(unused)]
 pub fn dump(object: JsonObject) -> String {
     String::new()
 }
