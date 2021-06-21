@@ -15,7 +15,7 @@ pub struct JsonObject<'a> {
 
 impl<'a> JsonObject<'a> {
     pub fn new() -> Self {
-        JsonObject {
+        Self {
             int_pairs: HashMap::new(),
             float_pairs: HashMap::new(),
             bool_pairs: HashMap::new(),
@@ -147,7 +147,7 @@ pub struct JsonArray<'a> {
 
 impl<'a> JsonArray<'a> {
     pub fn new() -> Self {
-        JsonArray {
+        Self {
             ints: Vec::new(),
             floats: Vec::new(),
             bools: Vec::new(),

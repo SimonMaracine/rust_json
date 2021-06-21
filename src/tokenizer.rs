@@ -1,18 +1,18 @@
 use std::error::Error;
 use std::fmt;
 
-pub fn tokenize(contents: String) -> Result<Vec<Token>, &'static str> {
+pub fn tokenize(contents: String) -> Result<Vec<Token>, ParseError> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut current_character: Option<char> = None;
-    let mut current_position = -1;
+    let mut current_position = Position { index: -1, line: 1, column: -1 };
 
     let contents_chars = contents.chars().collect();
 
     advance(&contents_chars, &mut current_character, &mut current_position);
 
     while let Some(character) = current_character {
-        print!("{}", character);
+        // print!("{}", character);
         match character {
             ' ' | '\t' |
             '\n' | '\r' => (),
@@ -72,24 +72,25 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, &'static str> {
 }
 
 fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-           current_position: &mut i32) {
-    *current_position = *current_position + 1;
-    if *current_position < contents_chars.len() as i32 {
-        *current_character = Some(contents_chars[*current_position as usize]);
+           current_position: &mut Position) {
+    current_position.advance(current_character);
+    if current_position.index < contents_chars.len() as i32 {
+        *current_character = Some(contents_chars[current_position.index as usize]);
     } else {
         *current_character = None;
     }
 }
 
 fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                current_position: &mut i32) -> Result<String, &'static str> {
+                current_position: &mut Position) -> Result<String, ParseError> {
     let mut string = String::new();
-
+    // TODO error on invalid char: "\"
+    // TODO error (unexpected end of string)
     loop {
         advance(contents_chars, current_character, current_position);
-        if let Some(character) = current_character {  // TODO Temporary
-            print!("{}", character);
-        }
+        // if let Some(character) = current_character {  // TODO Temporary
+        //     print!("{}", character);
+        // }
 
         if let Some(character) = current_character {
             if *character == '"' {
@@ -98,7 +99,8 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
                 string.push(*character);
             }
         } else {  // character is None
-            return Err("Missing right double quotes");
+            return Err(ParseError::new("Missing right double quotes",
+                       current_position.line, current_position.column));
         }
     }
 
@@ -106,7 +108,7 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
 }
 
 fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                    current_position: &mut i32) -> Result<String, &'static str> {
+                    current_position: &mut Position) -> Result<String, ParseError> {
     let mut number = String::new();
     let mut is_floating_point = false;
 
@@ -116,9 +118,9 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
 
     loop {
         advance(contents_chars, current_character, current_position);
-        if let Some(character) = current_character {  // TODO Temporary
-            print!("{}", character);
-        }
+        // if let Some(character) = current_character {  // TODO Temporary
+        //     print!("{}", character);
+        // }
 
         if let Some(character) = current_character {
             match character {
@@ -133,20 +135,24 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
                         number.push(*character);
                         is_floating_point = true;
                     } else {
-                        return Err("Invalid number format");
+                        // return Err("Invalid number format");
+                        return Err(ParseError::new("Invalid number format", current_position.line,
+                                       current_position.column));
                     }
                 }
 
                 _ => {
                     if last_character == '.' {
-                        return Err("Invalid number format");
+                        return Err(ParseError::new("Invalid number format", current_position.line,
+                                       current_position.column));
                     }
                     break;
                 }
             }
             last_character = *character;
         } else {  // character is None
-            return Err("Reached EOF");
+            return Err(ParseError::new("Reached EOF", current_position.line,
+                                       current_position.column));
         }
     }
 
@@ -154,16 +160,16 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
 }
 
 fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                 current_position: &mut i32) -> Result<String, &'static str> {
+                 current_position: &mut Position) -> Result<String, ParseError> {
     let mut keyword = String::new();
 
     keyword.push(current_character.unwrap());
 
     loop {
         advance(contents_chars, current_character, current_position);
-        if let Some(character) = current_character {  // TODO Temporary
-            print!("{}", character);
-        }
+        // if let Some(character) = current_character {  // TODO Temporary
+        //     print!("{}", character);
+        // }
 
         if let Some(character) = current_character {
             match character {
@@ -172,13 +178,15 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 
                 _ => {
                     if !(keyword == "true" || keyword == "false" || keyword == "null") {
-                        return Err("Invalid keyword");
+                        return Err(ParseError::new("Invalid keyword", current_position.line,
+                                       current_position.column));
                     }
                     break;
                 }
             }
         } else {  // character is None
-            return Err("Reached EOF");
+            return Err(ParseError::new("Reached EOF", current_position.line,
+                                       current_position.column));
         }
     }
 
@@ -200,12 +208,53 @@ pub enum Token {
 }
 
 #[derive(Debug)]
-pub struct ParseError(pub &'static str);
+pub struct ParseError {
+    message: &'static str,
+    line: i32,
+    column: i32
+}
+
+impl ParseError {
+    fn new(message: &'static str, line: i32, column: i32) -> Self {
+        Self {
+            message: message,
+            line: line,
+            column: column
+        }
+    }
+}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "Parse error: {}", self.0)
+        write!(formatter, "Parse error: {}\nLine: {}, column: {}", self.message,
+               self.line, self.column)
     }
 }
 
 impl Error for ParseError {}
+
+#[derive(Debug, Clone)]
+struct Position {
+    pub index: i32,  // Character index in JSON file
+    pub line: i32,
+    pub column: i32
+}
+
+impl Position {
+    fn advance(&mut self, current_character: &Option<char>) -> &mut Self {
+        self.index += 1;
+        self.column += 1;
+
+        let character = match current_character {
+            Some(character) => *character,
+            None => '\0'
+        };
+
+        if character == '\n' || character == '\r' {
+            self.line += 1;
+            self.column = 0;
+        }
+
+        self
+    }
+}
