@@ -1,5 +1,5 @@
 [package]
-name = "rust_json"
+name = "rusty_json"
 version = "0.1.0"
 authors = ["SimonMaracine <simonmaracine@gmail.com>"]
 edition = "2018"
