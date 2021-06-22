@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-pub fn tokenize(contents: String) -> Result<Vec<Token>, ParseError> {
+pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut current_character: Option<char> = None;
@@ -42,7 +42,7 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, ParseError> {
                                           &mut current_position);
                 match number {
                     Ok(value) => tokens.push(Token::Number(value)),
-                    Err(message) => return Err(message)
+                    Err(error) => return Err(error)
                 }
 
                 // This is so that the character after the last number
@@ -55,7 +55,7 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, ParseError> {
                                             &mut current_position);
                 match keyword {
                     Ok(value) => tokens.push(Token::Keyword(value)),
-                    Err(message) => return Err(message)
+                    Err(error) => return Err(error)
                 }
 
                 // This is so that the character after the last keyword
@@ -82,9 +82,12 @@ fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
 }
 
 fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                current_position: &mut Position) -> Result<String, ParseError> {
+                current_position: &mut Position) -> Result<String, Box<dyn Error>> {
     let mut string = String::new();
-    // TODO error on invalid char: "\"
+
+    let mut last_character = '\0';
+    let mut check_escape_character = false;
+
     // TODO error (unexpected end of string)
     loop {
         advance(contents_chars, current_character, current_position);
@@ -93,14 +96,31 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
         // }
 
         if let Some(character) = current_character {
-            if *character == '"' {
-                break;
+            if check_escape_character {
+                match *character {
+                    '"' => string.push('\"'),
+                    '\\' => string.push('\\'),
+                    'n' => string.push('\n'),
+                    'r' => string.push('\r'),
+                    't' => string.push('\t'),
+                    _ => return Err(Box::new(InvalidStringError::new(
+                                             "Unknown escape character in string",
+                                             current_position.line, current_position.column
+                                             )))
+                }
+                check_escape_character = false;
             } else {
-                string.push(*character);
+                match *character {
+                    '"' => break,
+                    '\\' => {
+                        check_escape_character = true;
+                    }
+                    _ => string.push(*character)
+                }
             }
         } else {  // character is None
-            return Err(ParseError::new("Missing right double quotes",
-                       current_position.line, current_position.column));
+            return Err(Box::new(ParseError::new("Missing right double quotes",
+                       current_position.line, current_position.column)));
         }
     }
 
@@ -108,7 +128,7 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
 }
 
 fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                    current_position: &mut Position) -> Result<String, ParseError> {
+                current_position: &mut Position) -> Result<String, Box<dyn Error>> {
     let mut number = String::new();
     let mut is_floating_point = false;
 
@@ -136,23 +156,25 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
                         is_floating_point = true;
                     } else {
                         // return Err("Invalid number format");
-                        return Err(ParseError::new("Invalid number format", current_position.line,
-                                       current_position.column));
+                        return Err(Box::new(ParseError::new("Invalid number format",
+                                                            current_position.line,
+                                                            current_position.column)));
                     }
                 }
 
                 _ => {
                     if last_character == '.' {
-                        return Err(ParseError::new("Invalid number format", current_position.line,
-                                       current_position.column));
+                        return Err(Box::new(ParseError::new("Invalid number format",
+                                                            current_position.line,
+                                                            current_position.column)));
                     }
                     break;
                 }
             }
             last_character = *character;
         } else {  // character is None
-            return Err(ParseError::new("Reached EOF", current_position.line,
-                                       current_position.column));
+            return Err(Box::new(ParseError::new("Reached EOF", current_position.line,
+                                                current_position.column)));
         }
     }
 
@@ -160,7 +182,7 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
 }
 
 fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char>,
-                 current_position: &mut Position) -> Result<String, ParseError> {
+                 current_position: &mut Position) -> Result<String, Box<dyn Error>> {
     let mut keyword = String::new();
 
     keyword.push(current_character.unwrap());
@@ -178,15 +200,16 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 
                 _ => {
                     if !(keyword == "true" || keyword == "false" || keyword == "null") {
-                        return Err(ParseError::new("Invalid keyword", current_position.line,
-                                       current_position.column));
+                        return Err(Box::new(ParseError::new("Invalid keyword",
+                                                            current_position.line,
+                                                            current_position.column)));
                     }
                     break;
                 }
             }
         } else {  // character is None
-            return Err(ParseError::new("Reached EOF", current_position.line,
-                                       current_position.column));
+            return Err(Box::new(ParseError::new("Reached EOF", current_position.line,
+                                                current_position.column)));
         }
     }
 
@@ -226,12 +249,38 @@ impl ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "Parse error: {}\nLine: {}, column: {}", self.message,
+        write!(formatter, "ParseError: {}\nLine: {}, column: {}", self.message,
                self.line, self.column)
     }
 }
 
 impl Error for ParseError {}
+
+#[derive(Debug)]
+pub struct InvalidStringError {
+    message: &'static str,
+    line: i32,
+    column: i32
+}
+
+impl InvalidStringError {
+    fn new(message: &'static str, line: i32, column: i32) -> Self {
+        Self {
+            message: message,
+            line: line,
+            column: column
+        }
+    }
+}
+
+impl fmt::Display for InvalidStringError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "InvalidStringError: {}\nLine: {}, column: {}", self.message,
+               self.line, self.column)
+    }
+}
+
+impl Error for InvalidStringError {}
 
 #[derive(Debug, Clone)]
 struct Position {

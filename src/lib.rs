@@ -15,7 +15,7 @@ pub fn load<'object>(file: String) -> Result<JsonObject<'object>, Box<dyn Error>
 
     match tokens {
         Ok(token_arr) => println!("{:#?}", token_arr),
-        Err(error) => return Err(Box::new(error))
+        Err(error) => return Err(error)
     }
 
     Ok(JsonObject::new())
