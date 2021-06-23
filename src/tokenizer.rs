@@ -63,7 +63,11 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
                 continue;
             }
 
-            _ => tokens.push(Token::Unidentified(character.to_string()))
+            _ => return Err(Box::new(
+                    ParseError::new(format!("Unidentified character: {}", character),
+                                    current_position.line,
+                                    current_position.column))
+                 )
         }
         advance(&contents_chars, &mut current_character, &mut current_position);
     }
@@ -90,7 +94,6 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
     let mut last_character = '\0';
     let mut check_escape_character = false;
 
-    // TODO error (unexpected end of string)
     loop {
         advance(contents_chars, current_character, current_position);
         // if let Some(character) = current_character {  // TODO Temporary
@@ -106,25 +109,28 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
                     'r' => string.push('\r'),
                     't' => string.push('\t'),
                     _ => return Err(Box::new(
-                            InvalidStringError::new("Unknown escape character in string",
-                                                    current_position.line,
-                                                    current_position.column))
-                         )
+                        InvalidStringError::new("Unknown escape character in string",
+                                                current_position.line,
+                                                current_position.column))
+                    )
                 }
                 check_escape_character = false;
             } else {
                 match *character {
                     '"' => break,
-                    '\\' => {
-                        check_escape_character = true;
-                    }
+                    '\\' => check_escape_character = true,
+                    '\n' => return Err(Box::new(
+                        InvalidStringError::new("Unexpected end of string",
+                                                current_position.line,
+                                                current_position.column)
+                    )),
                     _ => string.push(*character)
                 }
             }
         } else {  // character is None
-            return Err(Box::new(ParseError::new("Missing right double quotes",
-                                                current_position.line,
-                                                current_position.column)));
+            return Err(Box::new(InvalidStringError::new("Missing right double quotes",
+                                                        current_position.line,
+                                                        current_position.column)));
         }
     }
 
@@ -159,25 +165,29 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
                         number.push(*character);
                         is_floating_point = true;
                     } else {
-                        return Err(Box::new(ParseError::new("Invalid number format",
-                                                            current_position.line,
-                                                            current_position.column)));
+                        return Err(Box::new(
+                            ParseError::new("Invalid number format".to_string(),
+                                            current_position.line,
+                                            current_position.column))
+                        );
                     }
                 }
 
                 _ => {
                     if last_character == '.' {
-                        return Err(Box::new(ParseError::new("Invalid number format",
-                                                            current_position.line,
-                                                            current_position.column)));
+                        return Err(Box::new(
+                            ParseError::new("Invalid number format".to_string(),
+                                            current_position.line,
+                                            current_position.column))
+                        );
                     }
                     break;
                 }
             }
             last_character = *character;
         } else {  // character is None
-            return Err(Box::new(ParseError::new("Reached EOF", current_position.line,
-                                                current_position.column)));
+            return Err(Box::new(EofError::new("Reached EOF", current_position.line,
+                                              current_position.column)));
         }
     }
 
@@ -203,7 +213,7 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 
                 _ => {
                     if !(keyword == "true" || keyword == "false" || keyword == "null") {
-                        return Err(Box::new(ParseError::new("Invalid keyword",
+                        return Err(Box::new(ParseError::new("Invalid keyword".to_string(),
                                                             current_position.line,
                                                             current_position.column)));
                     }
@@ -211,8 +221,8 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
                 }
             }
         } else {  // character is None
-            return Err(Box::new(ParseError::new("Reached EOF", current_position.line,
-                                                current_position.column)));
+            return Err(Box::new(EofError::new("Reached EOF", current_position.line,
+                                              current_position.column)));
         }
     }
 
@@ -231,18 +241,17 @@ pub enum Token {
     String(String),
     Number(String),  // Integer or float
     Keyword(String),  // Boolean or null
-    Unidentified(String)  // When this is used, there will be an error
 }
 
 #[derive(Debug)]
 pub struct ParseError {
-    message: &'static str,
+    message: String,
     line: i32,
     column: i32
 }
 
 impl ParseError {
-    fn new(message: &'static str, line: i32, column: i32) -> Self {
+    fn new(message: String, line: i32, column: i32) -> Self {
         Self {
             message: message,
             line: line,
@@ -285,6 +294,32 @@ impl fmt::Display for InvalidStringError {
 }
 
 impl Error for InvalidStringError {}
+
+#[derive(Debug)]
+pub struct EofError {
+    message: &'static str,
+    line: i32,
+    column: i32
+}
+
+impl EofError {
+    fn new(message: &'static str, line: i32, column: i32) -> Self {
+        Self {
+            message: message,
+            line: line,
+            column: column
+        }
+    }
+}
+
+impl fmt::Display for EofError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "EOFError: {}\nLine: {}, column: {}", self.message,
+               self.line, self.column)
+    }
+}
+
+impl Error for EofError {}
 
 #[derive(Debug, Clone)]
 struct Position {
