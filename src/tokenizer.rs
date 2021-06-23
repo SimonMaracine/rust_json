@@ -68,6 +68,8 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
         advance(&contents_chars, &mut current_character, &mut current_position);
     }
 
+    tokens.push(Token::Eof);
+
     Ok(tokens)
 }
 
@@ -224,6 +226,7 @@ pub enum Token {
     RightBracket,
     Colon,
     Comma,
+    Eof,
     String(String),
     Number(String),  // Integer or float
     Keyword(String),  // Boolean or null
