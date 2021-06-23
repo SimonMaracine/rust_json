@@ -105,10 +105,11 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
                     'n' => string.push('\n'),
                     'r' => string.push('\r'),
                     't' => string.push('\t'),
-                    _ => return Err(Box::new(InvalidStringError::new(
-                                             "Unknown escape character in string",
-                                             current_position.line, current_position.column
-                                             )))
+                    _ => return Err(Box::new(
+                            InvalidStringError::new("Unknown escape character in string",
+                                                    current_position.line,
+                                                    current_position.column))
+                         )
                 }
                 check_escape_character = false;
             } else {
@@ -122,7 +123,8 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
             }
         } else {  // character is None
             return Err(Box::new(ParseError::new("Missing right double quotes",
-                       current_position.line, current_position.column)));
+                                                current_position.line,
+                                                current_position.column)));
         }
     }
 
@@ -157,7 +159,6 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
                         number.push(*character);
                         is_floating_point = true;
                     } else {
-                        // return Err("Invalid number format");
                         return Err(Box::new(ParseError::new("Invalid number format",
                                                             current_position.line,
                                                             current_position.column)));
