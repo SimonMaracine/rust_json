@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
+pub(crate) fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut current_character: Option<char> = None;
@@ -12,7 +12,6 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
     advance(&contents_chars, &mut current_character, &mut current_position);
 
     while let Some(character) = current_character {
-        // print!("{}", character);
         match character {
             ' ' | '\t' |
             '\n' | '\r' => (),
@@ -96,9 +95,6 @@ fn build_string(contents_chars: &Vec<char>, current_character: &mut Option<char>
 
     loop {
         advance(contents_chars, current_character, current_position);
-        // if let Some(character) = current_character {  // TODO Temporary
-        //     print!("{}", character);
-        // }
 
         if let Some(character) = current_character {
             if check_escape_character {
@@ -148,9 +144,6 @@ fn build_number(contents_chars: &Vec<char>, current_character: &mut Option<char>
 
     loop {
         advance(contents_chars, current_character, current_position);
-        // if let Some(character) = current_character {  // TODO Temporary
-        //     print!("{}", character);
-        // }
 
         if let Some(character) = current_character {
             match character {
@@ -202,9 +195,6 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 
     loop {
         advance(contents_chars, current_character, current_position);
-        // if let Some(character) = current_character {  // TODO Temporary
-        //     print!("{}", character);
-        // }
 
         if let Some(character) = current_character {
             match character {
@@ -230,7 +220,7 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 }
 
 #[derive(Debug)]
-pub enum Token {
+pub(crate) enum Token {
     LeftBrace,
     RightBrace,
     LeftBracket,
@@ -323,9 +313,9 @@ impl Error for EofError {}
 
 #[derive(Debug, Clone)]
 struct Position {
-    pub index: i32,  // Character index in JSON file
-    pub line: i32,
-    pub column: i32
+    index: i32,  // Character index in JSON file
+    line: i32,
+    column: i32
 }
 
 impl Position {
