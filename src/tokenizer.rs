@@ -29,7 +29,7 @@ pub fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
                                           &mut current_position);
                 match string {
                     Ok(value) => tokens.push(Token::String(value)),
-                    Err(message) => return Err(message)
+                    Err(error) => return Err(error)
                 }
             }
 
