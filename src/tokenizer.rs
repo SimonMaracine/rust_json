@@ -79,6 +79,7 @@ pub(crate) fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
 fn advance(contents_chars: &Vec<char>, current_character: &mut Option<char>,
            current_position: &mut Position) {
     current_position.advance(current_character);
+
     if current_position.index < contents_chars.len() as i32 {
         *current_character = Some(contents_chars[current_position.index as usize]);
     } else {
