@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-pub(crate) fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
+pub (crate) fn tokenize(contents: String) -> Result<Vec<Token>, Box<dyn Error>> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut current_character: Option<char> = None;
@@ -221,7 +221,7 @@ fn build_keyword(contents_chars: &Vec<char>, current_character: &mut Option<char
 }
 
 #[derive(Debug)]
-pub(crate) enum Token {
+pub (crate) enum Token {
     LeftBrace,
     RightBrace,
     LeftBracket,

@@ -2,6 +2,7 @@
 
 mod data_structure;
 mod tokenizer;
+mod parser;
 
 use std::fs::read_to_string;
 use std::error::Error;
